@@ -48,8 +48,9 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
       ).some
     )
     Task.deferFuture {
+      println(s"START $champion $region $patch")
       lucinda.getStatistics(req)
-    }.map(_ => ())
+    }.map(_ => println(s"DONE $champion $region $patch"))
   }
 
   def run: Task[Unit] = {
@@ -59,12 +60,7 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
         factors <- fetchAggregationFactors(region, patch)
 
         _ <- factors.champions.toList.traverse { champ =>
-          println(s"START $champ $region $patch")
-
-          fetchChampionStatistics(champ, region, patch).map { res =>
-            println(s"DONE $champ $region $patch")
-            res
-          }
+          fetchChampionStatistics(champ, region, patch)
         }
       } yield ()
     }.sequence.map(_ => ())
