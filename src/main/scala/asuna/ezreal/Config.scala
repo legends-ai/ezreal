@@ -5,8 +5,8 @@ import asuna.proto.league.{ Region, Role, Tier }
 import buildinfo.BuildInfo
 
 class EzrealConfig {
-  val regions = List(Region.NA)
-  val patches = List("7.5")
+  val regions = List(Region.NA, Region.EUW, Region.BR)
+  val patches = List("7.5", "7.4", "7.3", "7.2", "7.1", "6.24", "6.23", "6.22")
 }
 
 object EzrealConfigParser extends ConfigParser[EzrealConfig](
