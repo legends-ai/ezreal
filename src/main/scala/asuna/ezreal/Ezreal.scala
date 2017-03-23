@@ -12,6 +12,7 @@ import asuna.proto.league.vulgate.rpc.GetAggregationFactorsRequest
 import asuna.proto.league.vulgate.{ AggregationFactors, VulgateGrpc }
 import monix.eval.Task
 import monix.execution.Scheduler
+import scala.concurrent.Future
 
 class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args, EzrealConfigParser) {
 
@@ -52,7 +53,7 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
   }
 
   def run: Task[Unit] = {
-    (cfg.regions |@| cfg.patches).traverse { (region, patch) =>
+    (cfg.regions |@| cfg.patches).map { (region, patch) =>
       for {
         factors <- fetchAggregationFactors(region, patch)
 
@@ -65,7 +66,7 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
           }
         }
       } yield ()
-    }
+    }.sequence.map(_ => ())
   }
 
   def start: Future[Unit] = run.runAsync
