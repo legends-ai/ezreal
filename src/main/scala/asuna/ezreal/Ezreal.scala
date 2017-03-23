@@ -53,6 +53,7 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
   }
 
   def run: Task[Unit] = {
+    println("Time for a true display of skill!")
     (cfg.regions |@| cfg.patches).map { (region, patch) =>
       for {
         factors <- fetchAggregationFactors(region, patch)
