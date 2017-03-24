@@ -3,7 +3,8 @@ package asuna.ezreal
 import cats.implicits._
 import monix.cats._
 import asuna.common.BaseService
-import asuna.proto.league.Region
+import asuna.common.monix.TaskHelpers._
+import asuna.proto.league.{ Region, Role }
 import asuna.proto.league.lucinda.rpc.Constraints
 import asuna.proto.league.lucinda.{ LucindaGrpc, StatisticsKey }
 import asuna.proto.league.lucinda.rpc.GetStatisticsRequest
@@ -43,14 +44,20 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
         patches = Seq(patch),
         queues = Seq()
       ).some,
+
       constraints = Constraints(
         minPickRate = 0.05
       ).some
     )
-    Task.deferFuture {
-      println(s"START $champion $region $patch")
-      lucinda.getStatistics(req)
-    }.map(_ => println(s"DONE $champion $region $patch"))
+
+    (Role.values.toSet - Role.UNDEFINED_ROLE).toList
+      .map(x => req.copy(query = req.query.map(_.copy(roles = Seq(x)))))
+      .traverseG { r =>
+        Task.deferFuture {
+          println(s"START $champion $region ${r.query.flatMap(_.roles.headOption)} $patch")
+          lucinda.getStatistics(req)
+        }.map(_ => println(s"DONE $champion $region $patch"))
+      }.map(_ => ())
   }
 
   def run: Task[Unit] = {
