@@ -3,7 +3,6 @@ package asuna.ezreal
 import cats.implicits._
 import monix.cats._
 import asuna.common.BaseService
-import asuna.common.monix.TaskHelpers._
 import asuna.proto.league.{ Region, Role }
 import asuna.proto.league.lucinda.rpc.Constraints
 import asuna.proto.league.lucinda.{ LucindaGrpc, StatisticsKey }
@@ -33,7 +32,7 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
     )
   }
 
-  def fetchChampionStatistics(champion: Int, region: Region, patch: String): Task[Unit] = {
+  def fetchChampionStatistics(champion: Int, region: Region, patch: String, role: Role): Task[Unit] = {
     val req = GetStatisticsRequest(
       query = StatisticsKey(
         championIds = Seq(champion),
@@ -50,23 +49,21 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
       ).some
     )
 
-    (Role.values.toSet - Role.UNDEFINED_ROLE).toList
-      .traverseG { role =>
-        Task.deferFuture {
-          println(s"START $champion $region $role $patch")
-          lucinda.getStatistics(req.copy(query = req.query.map(_.copy(roles = Seq(role)))))
-        }.map(_ => println(s"DONE $champion $region $role $patch"))
-      }.map(_ => ())
+    Task.deferFuture {
+      println(s"START $champion $region $role $patch")
+      lucinda.getStatistics(req.copy(query = req.query.map(_.copy(roles = Seq(role)))))
+    }.map(_ => println(s"DONE $champion $region $role $patch"))
   }
 
   def run: Task[Unit] = {
     println("Time for a true display of skill!")
-    (cfg.regions |@| cfg.patches).map { (region, patch) =>
+    val roles = (Role.values.toSet - Role.UNDEFINED_ROLE).toList
+    (cfg.regions |@| cfg.patches |@| roles).map { (region, patch, role) =>
       for {
         factors <- fetchAggregationFactors(region, patch)
 
         _ <- factors.champions.toList.traverse { champ =>
-          fetchChampionStatistics(champ, region, patch)
+          fetchChampionStatistics(champ, region, patch, role)
         }
       } yield ()
     }.sequence.map(_ => ())
