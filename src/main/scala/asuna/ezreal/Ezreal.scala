@@ -51,12 +51,11 @@ class Ezreal(args: Seq[String])(implicit s: Scheduler) extends BaseService(args,
     )
 
     (Role.values.toSet - Role.UNDEFINED_ROLE).toList
-      .map(x => req.copy(query = req.query.map(_.copy(roles = Seq(x)))))
-      .traverseG { r =>
+      .traverseG { role =>
         Task.deferFuture {
-          println(s"START $champion $region ${r.query.flatMap(_.roles.headOption)} $patch")
-          lucinda.getStatistics(req)
-        }.map(_ => println(s"DONE $champion $region $patch"))
+          println(s"START $champion $region $role $patch")
+          lucinda.getStatistics(req.copy(query = req.query.map(_.copy(roles = Seq(role)))))
+        }.map(_ => println(s"DONE $champion $region $role $patch"))
       }.map(_ => ())
   }
 
